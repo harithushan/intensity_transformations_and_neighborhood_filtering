@@ -10,3 +10,7 @@ python -m venv env
 ```
 env\Scripts\activate.bat
 ```
+### Install requirements
+```
+pip install -r requirements.txt
+```
