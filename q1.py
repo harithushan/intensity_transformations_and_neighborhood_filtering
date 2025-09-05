@@ -3,42 +3,13 @@ import os
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from utils import (
+    load_gray, save_img, 
+    plot_transfer, 
+    apply_lut, 
+    intensity_map_from_points
+)
 
-def load_gray(path: str):
-    img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-    if img is None:
-        raise FileNotFoundError(f"Could not read image: {path}")
-    return img
-
-def save_img(path: str, img):
-    cv2.imwrite(path, img)
-
-def apply_lut(gray, lut):
-    return cv2.LUT(gray, lut)
-
-
-def plot_transfer(x, y, title, outpath):
-    os.makedirs(os.path.dirname(outpath), exist_ok=True)
-    plt.figure()
-    plt.plot(x, y)
-    plt.title(title)
-    plt.xlabel("Input intensity")
-    plt.ylabel("Output intensity")
-    plt.xlim([0,255])
-    plt.ylim([0,255])
-    plt.grid(True, linestyle='--', linewidth=0.5)
-    plt.savefig(outpath, bbox_inches='tight', dpi=150)
-    plt.close()
-
-
-def intensity_map_from_points(points):
-    pts = sorted(points, key=lambda p: p[0])
-    xs = [p[0] for p in pts]
-    ys = [p[1] for p in pts]
-    lut = np.interp(np.arange(256), xs, ys).astype(np.uint8)
-    return lut
-
-os.makedirs("out", exist_ok=True)
 IN_PATH = "docs/q1_images/input/emma.jpg"
 control_points = [(0,0),(50, 50),(50, 100),(150, 255),(150, 150),(255,255)]
 def main():
