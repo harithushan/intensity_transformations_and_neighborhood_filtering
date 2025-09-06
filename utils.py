@@ -78,3 +78,58 @@ def gamma_correct_Lab(bgr, gamma: float):
 def vibrance_s_curve(x, a: float, sigma: float = 70.0):
     # x in [0,255]; returns mapped intensity with a Gaussian bump around 128
     return np.minimum(x + a * 128.0 * np.exp(-((x - 128.0)**2)/(2*sigma**2)), 255.0)
+
+
+def sobel_filter_2d(gray):
+    gray = ensure_gray(gray).astype(np.float32)
+    kx = np.array([[-1,0,1],[-2,0,2],[-1,0,1]], dtype=np.float32)
+    ky = np.array([[1,2,1],[0,0,0],[-1,-2,-1]], dtype=np.float32)
+    gx = cv2.filter2D(gray, -1, kx)
+    gy = cv2.filter2D(gray, -1, ky)
+    mag = np.sqrt(gx*gx + gy*gy)
+    mag = np.clip(mag, 0, 255).astype(np.uint8)
+    return mag, gx.astype(np.float32), gy.astype(np.float32)
+
+def sobel_manual(gray):
+    gray = ensure_gray(gray).astype(np.float32)
+    kx = np.array([[-1,0,1],[-2,0,2],[-1,0,1]], dtype=np.float32)
+    ky = np.array([[1,2,1],[0,0,0],[-1, -2, -1]], dtype=np.float32)
+    gx = conv2(gray, kx)
+    gy = conv2(gray, ky)
+    mag = np.sqrt(gx*gx + gy*gy)
+    mag = np.clip(mag, 0, 255).astype(np.uint8)
+    return mag, gx, gy
+
+def conv2(img, kernel):
+    kh, kw = kernel.shape
+    pad_y = kh//2
+    pad_x = kw//2
+    padded = np.pad(img, ((pad_y,pad_y),(pad_x,pad_x)), mode='reflect')
+    out = np.zeros_like(img, dtype=np.float32)
+    for y in range(img.shape[0]):
+        for x in range(img.shape[1]):
+            region = padded[y:y+kh, x:x+kw]
+            out[y,x] = np.sum(region * kernel[::-1, ::-1])
+    return out
+
+def sobel_separable(gray):
+
+    if len(gray.shape) == 3:
+        gray = cv2.cvtColor(gray, cv2.COLOR_BGR2GRAY)
+    gray = gray.astype(np.float32)
+
+    kx1 = np.array([1, 2, 1], dtype=np.float32).reshape(-1, 1)
+    kx2 = np.array([1, 0, -1], dtype=np.float32).reshape(1, -1)
+    ky1 = np.array([1, 0, -1], dtype=np.float32).reshape(-1, 1)
+    ky2 = np.array([1, 2, 1], dtype=np.float32).reshape(1, -1)
+
+    gx = cv2.filter2D(gray, cv2.CV_32F, kx1)
+    gx = cv2.filter2D(gx, cv2.CV_32F, kx2)
+
+    gy = cv2.filter2D(gray, cv2.CV_32F, ky1)
+    gy = cv2.filter2D(gy, cv2.CV_32F, ky2)
+
+    mag = np.sqrt(gx**2 + gy**2)
+    mag = np.clip(mag, 0, 255).astype(np.uint8)
+
+    return mag, gx, gy
