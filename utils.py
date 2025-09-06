@@ -10,6 +10,7 @@ def load_gray(path: str):
     return img
 
 def save_img(path: str, img):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     cv2.imwrite(path, img)
 
 def apply_lut(gray, lut):
@@ -73,3 +74,7 @@ def gamma_correct_Lab(bgr, gamma: float):
     lab_corr = cv2.merge((Lc, a, b)).astype(np.uint8)
     out = cv2.cvtColor(lab_corr, cv2.COLOR_LAB2BGR)
     return out
+
+def vibrance_s_curve(x, a: float, sigma: float = 70.0):
+    # x in [0,255]; returns mapped intensity with a Gaussian bump around 128
+    return np.minimum(x + a * 128.0 * np.exp(-((x - 128.0)**2)/(2*sigma**2)), 255.0)
