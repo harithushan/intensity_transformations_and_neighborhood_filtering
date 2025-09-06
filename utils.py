@@ -133,3 +133,66 @@ def sobel_separable(gray):
     mag = np.clip(mag, 0, 255).astype(np.uint8)
 
     return mag, gx, gy
+
+def nearest_neighbor_zoom(img, scale: float):
+    h, w = img.shape[:2]
+    H, W = int(round(h*scale)), int(round(w*scale))
+    out = np.zeros((H,W,img.shape[2]) if img.ndim==3 else (H,W), img.dtype)
+    for y in range(H):
+        for x in range(W):
+            yy = min(h-1, int(round(y/scale)))
+            xx = min(w-1, int(round(x/scale)))
+            out[y,x] = img[yy,xx]
+    return out
+
+def bilinear_zoom(img, scale: float):
+    h, w = img.shape[:2]
+    H, W = int(round(h*scale)), int(round(w*scale))
+    if img.ndim==2:
+        img = img[:,:,None]
+    C = img.shape[2]
+    out = np.zeros((H,W,C), dtype=img.dtype)
+    for y in range(H):
+        for x in range(W):
+            gy = (y+0.5)/scale - 0.5
+            gx = (x+0.5)/scale - 0.5
+            y0 = int(np.floor(gy))
+            x0 = int(np.floor(gx))
+            y1 = min(y0+1, h-1)
+            x1 = min(x0+1, w-1)
+            wy = gy - y0
+            wx = gx - x0
+            y0c = np.clip(y0, 0, h-1)
+            x0c = np.clip(x0, 0, w-1)
+            Ia = img[y0c, x0c].astype(np.float32)
+            Ib = img[y0c, x1].astype(np.float32)
+            Ic = img[y1, x0c].astype(np.float32)
+            Id = img[y1, x1].astype(np.float32)
+            top = Ia*(1-wx) + Ib*wx
+            bot = Ic*(1-wx) + Id*wx
+            val = top*(1-wy) + bot*wy
+            out[y,x] = val.astype(img.dtype)
+    if out.shape[2]==1:
+        out = out[:,:,0]
+    return out
+
+def normalized_ssd(a, b):
+    a = a.astype(np.float32)
+    b = b.astype(np.float32)
+    diff = a - b
+    ssd = np.sum(diff*diff)
+    denom = np.sum(a*a) + 1e-8
+    return ssd / denom
+
+
+def otsu_threshold(gray):
+    gray = ensure_gray(gray)
+    _, th = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    return th
+
+def morph_open_close(bin_img, open_k=3, close_k=3, iterations=1):
+    k1 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (open_k, open_k))
+    k2 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (close_k, close_k))
+    out = cv2.morphologyEx(bin_img, cv2.MORPH_OPEN, k1, iterations=iterations)
+    out = cv2.morphologyEx(out, cv2.MORPH_CLOSE, k2, iterations=iterations)
+    return out

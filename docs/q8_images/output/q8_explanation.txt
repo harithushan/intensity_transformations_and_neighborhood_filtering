@@ -1,0 +1,1 @@
+Dark rim occurs due to uncertain boundary labeling and blur mixing darker background near edges.
